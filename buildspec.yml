@@ -1,0 +1,35 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging into Docker Hub...
+      - echo $DOCKER_HUB_PASSWORD | docker login -u $DOCKER_HUB_USERNAME --password-stdin
+      - echo Logging into Amazon ECR...
+      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 339713062055.dkr.ecr.us-east-1.amazonaws.com
+      - echo Pulling the existing Docker image from ECR...
+      - docker pull 339713062055.dkr.ecr.us-east-1.amazonaws.com/ritua_roast_coffee:latest || true
+
+  build:
+    commands:
+      - echo Building the Docker image...
+      - docker build -t ritua_roast_coffee .
+      - echo Tagging the Docker image...
+      - IMAGE_TAG=$(date +%Y%m%d%H%M%S)  # Generate a unique tag based on the timestamp
+      - echo "IMAGE_TAG is set to $IMAGE_TAG"
+      - docker tag ritua_roast_coffee:latest 339713062055.dkr.ecr.us-east-1.amazonaws.com/ritua_roast_coffee:latest
+      - docker tag ritua_roast_coffee:latest 339713062055.dkr.ecr.us-east-1.amazonaws.com/ritua_roast_coffee:$IMAGE_TAG
+
+  post_build:
+    commands:
+      - echo Pushing the Docker images to ECR...
+      - docker push 339713062055.dkr.ecr.us-east-1.amazonaws.com/ritua_roast_coffee:latest
+      - docker push 339713062055.dkr.ecr.us-east-1.amazonaws.com/ritua_roast_coffee:$IMAGE_TAG
+      - echo Writing imagedefinitions.json file...
+      - printf '[{"name":"main","imageUri":"339713062055.dkr.ecr.us-east-1.amazonaws.com/ritua_roast_coffee:%s"}]' $IMAGE_TAG > imagedefinitions.json
+      - cat imagedefinitions.json  # Optional: to check if the file was created correctly
+
+artifacts:
+  files:
+    - appspec.yml
+    - imagedefinitions.json
