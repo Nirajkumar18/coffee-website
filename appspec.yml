@@ -1,0 +1,9 @@
+version: 0.0
+resources:
+  - TargetService:
+      type: AWS::ECS::Service
+      properties:
+        taskDefinition: "arn:aws:ecs:us-east-1:339713062055:task-definition/ritua-roast-task-definition:1"
+        loadBalancerInfo:
+          containerName: "main"
+          containerPort: 80
